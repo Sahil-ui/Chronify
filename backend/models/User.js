@@ -38,6 +38,11 @@ const userSchema = new Schema({
     default: Date.now,
     immutable: true,
   },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+    min: [0, 'tokenVersion cannot be negative'],
+  },
 });
 
 const User = mongoose.model('User', userSchema);

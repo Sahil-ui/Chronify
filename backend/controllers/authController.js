@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
 
-const createToken = (userId) => {
+const createToken = (userId, tokenVersion = 0) => {
   const secret = process.env.JWT_SECRET;
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -11,7 +11,7 @@ const createToken = (userId) => {
     throw new Error('JWT_SECRET is not set. Please define it in your environment variables.');
   }
 
-  return jwt.sign({ sub: userId }, secret, { expiresIn });
+  return jwt.sign({ sub: userId, tv: tokenVersion }, secret, { expiresIn });
 };
 
 // @desc    User signup
@@ -40,7 +40,7 @@ const signup = async (req, res, next) => {
       password: hashedPassword,
     });
 
-    const token = createToken(user._id);
+    const token = createToken(user._id, user.tokenVersion || 0);
 
     res.status(201).json({
       token,
@@ -80,7 +80,7 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = createToken(user._id);
+    const token = createToken(user._id, user.tokenVersion || 0);
 
     res.status(200).json({
       token,
@@ -97,8 +97,29 @@ const login = async (req, res, next) => {
   }
 };
 
+// @desc    User logout (invalidate existing tokens)
+// @route   POST /api/v1/auth/logout
+// @access  Private
+const logout = async (req, res, next) => {
+  try {
+    // Incrementing tokenVersion invalidates all previously issued JWTs for this user.
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    await User.updateOne({ _id: userId }, { $inc: { tokenVersion: 1 } });
+
+    res.status(200).json({ message: 'Logged out' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   login,
+  logout,
 };
 

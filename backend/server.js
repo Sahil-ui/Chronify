@@ -8,12 +8,24 @@ dotenv.config({ path: require('path').join(__dirname, '.env') });
 
 const { connectDB } = require('../config/db');
 const authRoutes = require('./routes/authRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const { startJobs } = require('./jobs');
 
 // Initialize Express app
 const app = express();
 
+// If you deploy behind a proxy/load balancer, set TRUST_PROXY=true
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
 // Connect to MongoDB
 connectDB();
+
+// Start background jobs (e.g., reminder engine)
+startJobs();
 
 // Global middlewares
 app.use(cors()); // Enable CORS for all routes
@@ -35,6 +47,9 @@ app.get('/health', (req, res) => {
 
 // Mount feature routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/goals', goalRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // Not found handler
 app.use((req, res, next) => {
