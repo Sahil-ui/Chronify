@@ -40,8 +40,44 @@ const listGoals = async (req, res, next) => {
   }
 };
 
+// @desc    Update a goal
+// @route   PATCH /api/v1/goals/:id
+// @access  Private
+const updateGoal = async (req, res, next) => {
+  try {
+    const { title, description, deadline, dailyAvailableHours, tags, status } = req.body;
+
+    const goal = await goalService.updateGoal(req.params.id, req.user._id, {
+      title,
+      description,
+      deadline,
+      dailyAvailableHours,
+      tags,
+      status,
+    });
+
+    res.status(200).json(goal);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete a goal
+// @route   DELETE /api/v1/goals/:id
+// @access  Private
+const deleteGoal = async (req, res, next) => {
+  try {
+    await goalService.deleteGoal(req.params.id, req.user._id);
+    res.status(200).json({ message: 'Goal deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createGoal,
   listGoals,
+  updateGoal,
+  deleteGoal,
 };
 

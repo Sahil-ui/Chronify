@@ -79,9 +79,45 @@ const updateTaskStatus = async (req, res, next) => {
   }
 };
 
+// @desc    Update a task (title, description, times, etc.)
+// @route   PATCH /api/v1/tasks/:id
+// @access  Private
+const updateTask = async (req, res, next) => {
+  try {
+    const { title, description, startTime, endTime, goalId, reminderOffsetMinutes } = req.body;
+
+    const task = await taskService.updateTask(req.params.id, req.user._id, {
+      title,
+      description,
+      startTime,
+      endTime,
+      goalId,
+      reminderOffsetMinutes,
+    });
+
+    res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete a task
+// @route   DELETE /api/v1/tasks/:id
+// @access  Private
+const deleteTask = async (req, res, next) => {
+  try {
+    await taskService.deleteTask(req.params.id, req.user._id);
+    res.status(200).json({ message: 'Task deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createTask,
   listTasks,
   updateTaskStatus,
+  updateTask,
+  deleteTask,
 };
 

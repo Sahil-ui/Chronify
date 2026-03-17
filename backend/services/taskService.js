@@ -78,6 +78,62 @@ const updateTaskStatus = async (taskId, userId, status) => {
   return task;
 };
 
+const updateTask = async (taskId, userId, updates) => {
+  // Rebuild reminderTime if startTime or offset changes
+  const patch = Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  );
+
+  if (patch.startTime || patch.reminderOffsetMinutes !== undefined) {
+    // Need the existing task to fill in whichever field wasn't updated
+    const existing = await Task.findOne({ _id: taskId, userId });
+    if (!existing) {
+      const err = new Error('Task not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    const start = patch.startTime ? new Date(patch.startTime) : existing.startTime;
+    const offset = patch.reminderOffsetMinutes !== undefined
+      ? patch.reminderOffsetMinutes
+      : existing.reminderOffsetMinutes;
+    patch.reminderTime = calculateReminderTime(start, offset);
+    patch.reminderSent = false; // Reset so the job can re-fire if needed
+  }
+
+  if (patch.goalId !== undefined) {
+    patch.goalId = patch.goalId || null;
+  }
+
+  const task = await Task.findOneAndUpdate(
+    { _id: taskId, userId },
+    patch,
+    { new: true, runValidators: true }
+  );
+
+  if (!task) {
+    const err = new Error('Task not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await updateProductivityLogForTask(task);
+
+  return task;
+};
+
+const deleteTask = async (taskId, userId) => {
+  const task = await Task.findOneAndDelete({ _id: taskId, userId });
+
+  if (!task) {
+    const err = new Error('Task not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Refresh the log so analytics stay accurate
+  await updateProductivityLogForTask(task);
+};
+
 const startOfDayUtc = (date) => {
   const d = new Date(date);
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -117,7 +173,6 @@ const updateProductivityLogForTask = async (task) => {
       tasksScheduled,
       completionRate,
       focusScore,
-      // streakDays will be computed later by a dedicated analytics routine
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
@@ -127,5 +182,7 @@ module.exports = {
   createTask,
   listTasksForUser,
   updateTaskStatus,
+  updateTask,
+  deleteTask,
 };
 
