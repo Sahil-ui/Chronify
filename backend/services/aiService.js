@@ -34,14 +34,33 @@ Return ONLY valid JSON matching this exact structure:
 }
 Do not include markdown blocks like \`\`\`json. Just the raw JSON object.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt }
-    ],
-    temperature: 0.7,
-  });
+  let response;
+  try {
+    response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+    });
+  } catch (error) {
+    // Normalize OpenAI errors so our global handler returns the right status/message
+    if (error?.status === 429 || error?.code === 'insufficient_quota') {
+      const err = new Error(
+        'AI quota exhausted. Please check OpenAI billing/plan or update the API key.'
+      );
+      err.statusCode = 429;
+      throw err;
+    }
+    if (error?.status === 401) {
+      const err = new Error('Invalid OpenAI API key.');
+      err.statusCode = 401;
+      throw err;
+    }
+    error.statusCode = error?.status || 500;
+    throw error;
+  }
 
   const rawJson = response.choices[0].message.content.trim();
   try {
@@ -68,14 +87,32 @@ Keep it concise, encouraging, and directly focused on the task at hand.`;
 
   const userPrompt = `Task Title: ${taskTitle}\nDescription: ${taskDescription || 'None'}\n\nPlease guide me on how to do this.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.7,
-  });
+  let response;
+  try {
+    response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+    });
+  } catch (error) {
+    if (error?.status === 429 || error?.code === 'insufficient_quota') {
+      const err = new Error(
+        'AI quota exhausted. Please check OpenAI billing/plan or update the API key.'
+      );
+      err.statusCode = 429;
+      throw err;
+    }
+    if (error?.status === 401) {
+      const err = new Error('Invalid OpenAI API key.');
+      err.statusCode = 401;
+      throw err;
+    }
+    error.statusCode = error?.status || 500;
+    throw error;
+  }
 
   return response.choices[0].message.content;
 };
