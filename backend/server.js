@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const { startJobs } = require('./jobs');
 
 // Initialize Express app
@@ -50,6 +51,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/goals', goalRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 // Not found handler
 app.use((req, res, next) => {

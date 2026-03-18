@@ -1,4 +1,5 @@
 const Goal = require('../models/Goal');
+const Task = require('../models/Task');
 
 const createGoal = async ({ userId, title, description, deadline, dailyAvailableHours, tags }) => {
   const goal = await Goal.create({
@@ -47,6 +48,9 @@ const deleteGoal = async (goalId, userId) => {
     err.statusCode = 404;
     throw err;
   }
+
+  // Delete all tasks associated with this goal
+  await Task.deleteMany({ goalId: goal._id, userId });
 };
 
 module.exports = {

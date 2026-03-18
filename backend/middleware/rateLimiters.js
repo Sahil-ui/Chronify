@@ -22,21 +22,16 @@ const authSignupLimiter = createLimiter({
   message: 'Too many signup attempts, please try again later.',
 });
 
-// The logout route currently has a rate limiter.
-// In practice, limiting logout requests is usually unnecessary since logout is not a destructive or resource-intensive action.
-// You can safely remove this limiter unless you have a specific reason (e.g., to prevent some kind of abuse).
-// If not needed, simply remove this:
-// const authLogoutLimiter = createLimiter({
-//   windowMs: 5 * 60 * 1000,
-//   max: 60,
-//   message: 'Too many logout requests, please try again later.',
-// });
-
-// If you want to keep the code but disable it for now:
-// const authLogoutLimiter = (req, res, next) => next();
+// Generic API Limiter (useful for AI routes)
+const apiLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests, please try again later.',
+});
 
 module.exports = {
   authLoginLimiter,
   authSignupLimiter,
+  apiLimiter,
 };
 
