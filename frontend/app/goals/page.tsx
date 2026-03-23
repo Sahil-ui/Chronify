@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import {
@@ -417,7 +417,7 @@ function EmptyGoals({ onAdd, onAddAi }: { onAdd: () => void; onAddAi: () => void
 
 // ─── Goals Page ────────────────────────────────────────────────────────────────
 
-export default function GoalsPage() {
+function GoalsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -986,5 +986,13 @@ export default function GoalsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function GoalsPage() {
+  return (
+    <Suspense>
+      <GoalsPageInner />
+    </Suspense>
   );
 }
