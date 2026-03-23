@@ -12,12 +12,14 @@ const createTask = async (req, res, next) => {
       source,
       startTime,
       endTime,
+      dueDate,
+      status,
       reminderOffsetMinutes,
     } = req.body;
 
-    if (!title || !startTime || !endTime) {
+    if (!goalId || !title || !startTime || !endTime) {
       return res.status(400).json({
-        message: 'Title, startTime, and endTime are required',
+        message: 'goalId, title, startTime, and endTime are required',
       });
     }
 
@@ -29,6 +31,8 @@ const createTask = async (req, res, next) => {
       source,
       startTime,
       endTime,
+      dueDate,
+      status,
       reminderOffsetMinutes,
     });
 
@@ -84,13 +88,22 @@ const updateTaskStatus = async (req, res, next) => {
 // @access  Private
 const updateTask = async (req, res, next) => {
   try {
-    const { title, description, startTime, endTime, goalId, reminderOffsetMinutes } = req.body;
+    const {
+      title,
+      description,
+      startTime,
+      endTime,
+      dueDate,
+      goalId,
+      reminderOffsetMinutes,
+    } = req.body;
 
     const task = await taskService.updateTask(req.params.id, req.user._id, {
       title,
       description,
       startTime,
       endTime,
+      dueDate,
       goalId,
       reminderOffsetMinutes,
     });
@@ -113,11 +126,33 @@ const deleteTask = async (req, res, next) => {
   }
 };
 
+// @desc    Update checklist step completion for a task
+// @route   PATCH /api/v1/tasks/:id/checklist/:stepId
+// @access  Private
+const updateChecklistStep = async (req, res, next) => {
+  try {
+    const { id, stepId } = req.params;
+    const completed =
+      typeof req.body?.completed === 'boolean' ? req.body.completed : true;
+
+    const task = await taskService.updateTaskChecklistStep({
+      taskId: id,
+      userId: req.user._id,
+      stepId,
+      completed,
+    });
+
+    res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createTask,
   listTasks,
   updateTaskStatus,
   updateTask,
+  updateChecklistStep,
   deleteTask,
 };
-

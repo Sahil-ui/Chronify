@@ -44,6 +44,52 @@ const goalSchema = new Schema(
         maxlength: 50,
       },
     ],
+    aiPlanning: {
+      isAiGenerated: {
+        type: Boolean,
+        default: false,
+      },
+      examTemplate: {
+        type: String,
+        trim: true,
+        maxlength: 60,
+      },
+      currentLevel: {
+        type: String,
+        trim: true,
+        maxlength: 60,
+      },
+      weakAreas: [
+        {
+          type: String,
+          trim: true,
+          maxlength: 80,
+        },
+      ],
+      preferredStudyWindow: {
+        type: String,
+        trim: true,
+        maxlength: 80,
+      },
+      targetDays: {
+        type: Number,
+        min: 1,
+        max: 365,
+      },
+      dailyAvailableHours: {
+        type: Number,
+        min: 0.5,
+        max: 16,
+      },
+      lastReplannedAt: {
+        type: Date,
+      },
+      lastWeeklyCompletionRate: {
+        type: Number,
+        min: 0,
+        max: 100,
+      },
+    },
   },
   {
     timestamps: true,
@@ -53,4 +99,3 @@ const goalSchema = new Schema(
 const Goal = mongoose.model('Goal', goalSchema);
 
 module.exports = Goal;
-

@@ -1,4 +1,33 @@
 const mongoose = require('mongoose');
+const Task = require('../backend/models/Task');
+
+const TASK_CALENDAR_INDEX_NAME = 'userId_1_googleCalendarEventId_1';
+
+const ensureTaskCalendarIndex = async () => {
+  const indexes = await Task.collection.indexes();
+  const existing = indexes.find((index) => index.name === TASK_CALENDAR_INDEX_NAME);
+
+  const hasExpectedDefinition =
+    Boolean(existing?.unique) &&
+    existing?.partialFilterExpression?.googleCalendarEventId?.$type === 'string';
+
+  if (hasExpectedDefinition) {
+    return;
+  }
+
+  if (existing) {
+    await Task.collection.dropIndex(TASK_CALENDAR_INDEX_NAME);
+  }
+
+  await Task.collection.createIndex(
+    { userId: 1, googleCalendarEventId: 1 },
+    {
+      name: TASK_CALENDAR_INDEX_NAME,
+      unique: true,
+      partialFilterExpression: { googleCalendarEventId: { $type: 'string' } },
+    }
+  );
+};
 
 /**
  * Establish a connection to MongoDB using Mongoose.
@@ -19,9 +48,19 @@ const connectDB = async () => {
     // Use native promises
     mongoose.Promise = global.Promise;
 
-    console.log('✅ MongoDB connected');
+    // Keep DB indexes aligned with schema definitions.
+    if (process.env.MONGO_SYNC_INDEXES !== 'false') {
+      try {
+        await Task.syncIndexes();
+      } catch (error) {
+        console.warn('Task.syncIndexes warning:', error.message);
+      }
+      await ensureTaskCalendarIndex();
+    }
+
+    console.log('MongoDB connected');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
+    console.error('MongoDB connection error:', error.message);
     // Exit the process if the DB connection fails in startup
     process.exit(1);
   }
@@ -30,4 +69,3 @@ const connectDB = async () => {
 module.exports = {
   connectDB,
 };
-

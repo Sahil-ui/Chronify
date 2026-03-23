@@ -1,5 +1,42 @@
 const Task = require('../models/Task');
+const Goal = require('../models/Goal');
 const ProductivityLog = require('../models/ProductivityLog');
+const googleCalendarService = require('./googleCalendarService');
+const taskInstructionService = require('./taskInstructionService');
+
+const ALLOWED_TASK_STATUSES = ['scheduled', 'completed', 'missed', 'skipped'];
+
+const badRequest = (message) => {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+};
+
+const parseDateInput = (value, fieldName) => {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw badRequest(`${fieldName} must be a valid date`);
+  }
+
+  return parsed;
+};
+
+const ensureGoalBelongsToUser = async (goalId, userId) => {
+  if (!goalId) {
+    throw badRequest('goalId is required');
+  }
+
+  const goal = await Goal.findOne({ _id: goalId, userId }).select('_id');
+  if (!goal) {
+    const error = new Error('Goal not found');
+    error.statusCode = 404;
+    throw error;
+  }
+};
 
 const calculateReminderTime = (startTime, reminderOffsetMinutes) => {
   if (!startTime || reminderOffsetMinutes == null) {
@@ -20,21 +57,43 @@ const createTask = async ({
   source = 'manual',
   startTime,
   endTime,
+  dueDate,
+  status = 'scheduled',
   reminderOffsetMinutes,
 }) => {
-  const reminderTime = calculateReminderTime(startTime, reminderOffsetMinutes);
+  await ensureGoalBelongsToUser(goalId, userId);
+
+  const normalizedStartTime = parseDateInput(startTime, 'startTime');
+  const normalizedEndTime = parseDateInput(endTime, 'endTime');
+  if (!normalizedStartTime || !normalizedEndTime) {
+    throw badRequest('startTime and endTime are required');
+  }
+  const normalizedDueDate = parseDateInput(dueDate, 'dueDate') || normalizedEndTime;
+
+  const reminderTime = calculateReminderTime(normalizedStartTime, reminderOffsetMinutes);
+  const instructionPack = await taskInstructionService.generateTaskInstructionPack({
+    title,
+    description,
+    localOnly: source === 'ai',
+  });
 
   const task = await Task.create({
     userId,
-    goalId: goalId || null,
+    goalId,
     title,
     description,
     source,
-    startTime,
-    endTime,
+    status,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
+    dueDate: normalizedDueDate,
+    aiInstructions: instructionPack.aiInstructions,
+    instructionProgress: instructionPack.instructionProgress,
     reminderOffsetMinutes: reminderOffsetMinutes ?? null,
     reminderTime,
   });
+
+  await googleCalendarService.syncTaskUpsert(userId, task);
 
   return task;
 };
@@ -53,9 +112,7 @@ const listTasksForUser = async (userId, { from, to } = {}) => {
 };
 
 const updateTaskStatus = async (taskId, userId, status) => {
-  const allowedStatuses = ['scheduled', 'completed', 'missed', 'skipped'];
-
-  if (!allowedStatuses.includes(status)) {
+  if (!ALLOWED_TASK_STATUSES.includes(status)) {
     const error = new Error('Invalid status value');
     error.statusCode = 400;
     throw error;
@@ -73,35 +130,91 @@ const updateTaskStatus = async (taskId, userId, status) => {
     throw error;
   }
 
+  if (status === 'completed' && Array.isArray(task.aiInstructions?.steps) && task.aiInstructions.steps.length > 0) {
+    task.aiInstructions.steps = task.aiInstructions.steps.map((step) => ({
+      ...(step.toObject ? step.toObject() : step),
+      completed: true,
+      completedAt: step.completedAt || new Date(),
+    }));
+    task.instructionProgress = 100;
+    await task.save();
+  }
+
   await updateProductivityLogForTask(task);
+  await googleCalendarService.syncTaskUpsert(userId, task);
 
   return task;
 };
 
 const updateTask = async (taskId, userId, updates) => {
-  // Rebuild reminderTime if startTime or offset changes
   const patch = Object.fromEntries(
     Object.entries(updates).filter(([, v]) => v !== undefined)
   );
 
-  if (patch.startTime || patch.reminderOffsetMinutes !== undefined) {
-    // Need the existing task to fill in whichever field wasn't updated
-    const existing = await Task.findOne({ _id: taskId, userId });
+  const shouldLoadExistingTask =
+    patch.title !== undefined ||
+    patch.description !== undefined ||
+    patch.startTime !== undefined ||
+    patch.endTime !== undefined ||
+    patch.dueDate !== undefined ||
+    patch.reminderOffsetMinutes !== undefined ||
+    patch.goalId !== undefined;
+
+  let existing = null;
+  if (shouldLoadExistingTask) {
+    existing = await Task.findOne({ _id: taskId, userId });
     if (!existing) {
       const err = new Error('Task not found');
       err.statusCode = 404;
       throw err;
     }
-    const start = patch.startTime ? new Date(patch.startTime) : existing.startTime;
-    const offset = patch.reminderOffsetMinutes !== undefined
-      ? patch.reminderOffsetMinutes
-      : existing.reminderOffsetMinutes;
-    patch.reminderTime = calculateReminderTime(start, offset);
-    patch.reminderSent = false; // Reset so the job can re-fire if needed
   }
 
   if (patch.goalId !== undefined) {
-    patch.goalId = patch.goalId || null;
+    if (!patch.goalId) {
+      throw badRequest('A task must always be linked to exactly one goal');
+    }
+    await ensureGoalBelongsToUser(patch.goalId, userId);
+  }
+
+  if (patch.startTime !== undefined) {
+    patch.startTime = parseDateInput(patch.startTime, 'startTime');
+  }
+
+  if (patch.endTime !== undefined) {
+    patch.endTime = parseDateInput(patch.endTime, 'endTime');
+  }
+
+  if (patch.dueDate !== undefined) {
+    patch.dueDate = parseDateInput(patch.dueDate, 'dueDate');
+  } else if (patch.endTime !== undefined) {
+    patch.dueDate = patch.endTime;
+  }
+
+  if (patch.startTime !== undefined || patch.reminderOffsetMinutes !== undefined) {
+    const nextStartTime = patch.startTime || existing?.startTime;
+    const nextOffset =
+      patch.reminderOffsetMinutes !== undefined
+        ? patch.reminderOffsetMinutes
+        : existing?.reminderOffsetMinutes;
+    patch.reminderTime = calculateReminderTime(nextStartTime, nextOffset);
+    patch.reminderSent = false;
+  }
+
+  const shouldRegenerateInstructions =
+    patch.title !== undefined || patch.description !== undefined;
+
+  if (shouldRegenerateInstructions || (existing && !existing?.aiInstructions?.steps?.length)) {
+    const nextTitle = patch.title !== undefined ? patch.title : existing?.title;
+    const nextDescription =
+      patch.description !== undefined ? patch.description : existing?.description;
+    const instructionPack = await taskInstructionService.generateTaskInstructionPack({
+      title: nextTitle,
+      description: nextDescription,
+      existingSteps: existing?.aiInstructions?.steps || [],
+    });
+    patch.aiInstructions = instructionPack.aiInstructions;
+    patch.instructionProgress = instructionPack.instructionProgress;
   }
 
   const task = await Task.findOneAndUpdate(
@@ -117,6 +230,7 @@ const updateTask = async (taskId, userId, updates) => {
   }
 
   await updateProductivityLogForTask(task);
+  await googleCalendarService.syncTaskUpsert(userId, task);
 
   return task;
 };
@@ -132,6 +246,102 @@ const deleteTask = async (taskId, userId) => {
 
   // Refresh the log so analytics stay accurate
   await updateProductivityLogForTask(task);
+  await googleCalendarService.syncTaskDelete(userId, task);
+};
+
+const updateTaskChecklistStep = async ({
+  taskId,
+  userId,
+  stepId,
+  completed,
+}) => {
+  const task = await Task.findOne({ _id: taskId, userId });
+
+  if (!task) {
+    const err = new Error('Task not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  taskInstructionService.applyChecklistStepUpdate({
+    task,
+    stepId,
+    completed,
+  });
+
+  await task.save();
+  return task;
+};
+
+const deleteTasksByGoal = async (goalId, userId) => {
+  const tasks = await Task.find({ goalId, userId });
+  if (tasks.length === 0) {
+    return { deletedTasks: 0 };
+  }
+
+  await Task.deleteMany({ goalId, userId });
+  await Promise.allSettled(tasks.map((task) => updateProductivityLogForTask(task)));
+  await googleCalendarService.syncTaskDeleteBatch(userId, tasks);
+
+  return { deletedTasks: tasks.length };
+};
+
+const propagateGoalDeadlineToTasks = async ({ goalId, userId, deadline }) => {
+  if (!deadline) {
+    return { updatedTasks: 0 };
+  }
+
+  const normalizedDeadline = parseDateInput(deadline, 'deadline');
+  const impactedTasks = await Task.find({
+    goalId,
+    userId,
+    dueDate: { $gt: normalizedDeadline },
+  });
+
+  if (impactedTasks.length === 0) {
+    return { updatedTasks: 0 };
+  }
+
+  const updates = impactedTasks.map((task) => {
+    const nextUpdate = {
+      dueDate: normalizedDeadline,
+    };
+
+    if (task.endTime && task.endTime > normalizedDeadline) {
+      nextUpdate.endTime = normalizedDeadline;
+
+      if (task.startTime >= normalizedDeadline) {
+        const adjustedStart = new Date(normalizedDeadline.getTime() - 30 * 60 * 1000);
+        nextUpdate.startTime = adjustedStart;
+
+        if (task.reminderOffsetMinutes != null) {
+          nextUpdate.reminderTime = calculateReminderTime(
+            adjustedStart,
+            task.reminderOffsetMinutes
+          );
+          nextUpdate.reminderSent = false;
+        }
+      }
+    }
+
+    return {
+      updateOne: {
+        filter: { _id: task._id, userId },
+        update: { $set: nextUpdate },
+      },
+    };
+  });
+
+  await Task.bulkWrite(updates, { ordered: false });
+
+  const refreshedTasks = await Task.find({
+    userId,
+    _id: { $in: impactedTasks.map((task) => task._id) },
+  });
+
+  await googleCalendarService.syncTasksBatch(userId, refreshedTasks);
+
+  return { updatedTasks: refreshedTasks.length };
 };
 
 const startOfDayUtc = (date) => {
@@ -183,6 +393,8 @@ module.exports = {
   listTasksForUser,
   updateTaskStatus,
   updateTask,
+  updateTaskChecklistStep,
   deleteTask,
+  deleteTasksByGoal,
+  propagateGoalDeadlineToTasks,
 };
-

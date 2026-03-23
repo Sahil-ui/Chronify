@@ -6,6 +6,7 @@ const {
   listTasks,
   updateTaskStatus,
   updateTask,
+  updateChecklistStep,
   deleteTask,
 } = require('../controllers/taskController');
 
@@ -16,6 +17,7 @@ router.use(protect);
 router.post('/', createTask);
 router.get('/', listTasks);
 router.patch('/:id/status', updateTaskStatus);
+router.patch('/:id/checklist/:stepId', updateChecklistStep);
 router.patch('/:id', updateTask);
 router.delete('/:id', deleteTask);
 

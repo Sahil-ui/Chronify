@@ -45,6 +45,50 @@ const userSchema = new Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  googleCalendar: {
+    connected: {
+      type: Boolean,
+      default: false,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    calendarId: {
+      type: String,
+      trim: true,
+      default: 'primary',
+    },
+    accessToken: {
+      type: String,
+      select: false,
+    },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
+    tokenExpiryDate: {
+      type: Date,
+    },
+    syncEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    oauthState: {
+      type: String,
+    },
+    oauthStateExpire: {
+      type: Date,
+    },
+    lastSyncAt: {
+      type: Date,
+    },
+    lastSyncError: {
+      type: String,
+      maxlength: 500,
+    },
+  },
 });
 
 // Generate and hash password token
@@ -67,4 +111,3 @@ userSchema.methods.getResetPasswordToken = function () {
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
-

@@ -1,5 +1,5 @@
 const Goal = require('../models/Goal');
-const Task = require('../models/Task');
+const taskService = require('./taskService');
 
 const createGoal = async ({ userId, title, description, deadline, dailyAvailableHours, tags }) => {
   const goal = await Goal.create({
@@ -20,6 +20,17 @@ const listGoalsForUser = async (userId) => {
 };
 
 const updateGoal = async (goalId, userId, updates) => {
+  const existingGoal = await Goal.findOne({ _id: goalId, userId });
+  if (!existingGoal) {
+    const err = new Error('Goal not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const previousDeadline = existingGoal.deadline
+    ? new Date(existingGoal.deadline).getTime()
+    : null;
+
   // Strip undefined fields so we only patch what was sent
   const patch = Object.fromEntries(
     Object.entries(updates).filter(([, v]) => v !== undefined)
@@ -37,11 +48,22 @@ const updateGoal = async (goalId, userId, updates) => {
     throw err;
   }
 
+  if (patch.deadline !== undefined) {
+    const nextDeadline = goal.deadline ? new Date(goal.deadline).getTime() : null;
+    if (previousDeadline !== nextDeadline) {
+      await taskService.propagateGoalDeadlineToTasks({
+        goalId: goal._id,
+        userId,
+        deadline: goal.deadline,
+      });
+    }
+  }
+
   return goal;
 };
 
 const deleteGoal = async (goalId, userId) => {
-  const goal = await Goal.findOneAndDelete({ _id: goalId, userId });
+  const goal = await Goal.findOne({ _id: goalId, userId });
 
   if (!goal) {
     const err = new Error('Goal not found');
@@ -49,8 +71,8 @@ const deleteGoal = async (goalId, userId) => {
     throw err;
   }
 
-  // Delete all tasks associated with this goal
-  await Task.deleteMany({ goalId: goal._id, userId });
+  await taskService.deleteTasksByGoal(goal._id, userId);
+  await Goal.deleteOne({ _id: goal._id, userId });
 };
 
 module.exports = {
@@ -59,4 +81,3 @@ module.exports = {
   updateGoal,
   deleteGoal,
 };
-

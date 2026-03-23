@@ -63,9 +63,29 @@ app.use((req, res, next) => {
 // Centralized error handler
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  // Handle AI credits expired error - no need to log this as error, it's a normal response
+  if (err.message === 'Oops your AI credits are expired') {
+    return res.status(402).json({
+      message: 'Oops your AI credits are expired',
+      error: 'Oops your AI credits are expired',
+    });
+  }
 
+  // Handle other credential/auth errors
+  if (err.statusCode === 401 || err.statusCode === 403) {
+    return res.status(err.statusCode).json({
+      message: err.message,
+    });
+  }
+
+  // Log actual server errors (5xx)
   const statusCode = err.statusCode || 500;
+  if (statusCode >= 500) {
+    console.error('❌ Server error:', err);
+  } else {
+    console.warn('⚠️ Client error:', err.message);
+  }
+
   const message =
     err.message || 'An unexpected error occurred. Please try again later.';
 

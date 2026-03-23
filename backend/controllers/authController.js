@@ -4,6 +4,7 @@ const crypto = require('crypto');
 
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
+const googleCalendarService = require('../services/googleCalendarService');
 
 const createToken = (userId, tokenVersion = 0) => {
   const secret = process.env.JWT_SECRET;
@@ -14,6 +15,18 @@ const createToken = (userId, tokenVersion = 0) => {
   }
 
   return jwt.sign({ sub: userId, tv: tokenVersion }, secret, { expiresIn });
+};
+
+const getFrontendBaseUrl = (req) => {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL.replace(/\/+$/, '');
+  }
+
+  const currentHost = req.get('host') || 'localhost:5000';
+  if (currentHost.includes('localhost')) {
+    return `${req.protocol}://localhost:3000`;
+  }
+  return `${req.protocol}://${currentHost}`;
 };
 
 // @desc    User signup
@@ -225,11 +238,178 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// @desc    Get Google Calendar integration status
+// @route   GET /api/v1/auth/google-calendar/status
+// @access  Private
+const googleCalendarStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const status = googleCalendarService.getGoogleCalendarStatus(user);
+    res.status(200).json(status);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create Google OAuth URL for calendar connect
+// @route   POST /api/v1/auth/google-calendar/connect
+// @access  Private
+const connectGoogleCalendar = async (req, res, next) => {
+  try {
+    if (!googleCalendarService.hasGoogleCalendarConfig()) {
+      return res.status(503).json({
+        message:
+          'Google Calendar is not configured on server. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI.',
+      });
+    }
+
+    const user = await User.findById(req.user._id).select(
+      '+googleCalendar.accessToken +googleCalendar.refreshToken'
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const state = googleCalendarService.generateOAuthState();
+    const expireAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.googleCalendar = user.googleCalendar || {};
+    user.googleCalendar.oauthState = state;
+    user.googleCalendar.oauthStateExpire = expireAt;
+    await user.save({ validateBeforeSave: false });
+
+    const authUrl = googleCalendarService.buildOAuthUrl(state);
+    res.status(200).json({ authUrl });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Google OAuth callback
+// @route   GET /api/v1/auth/google-calendar/callback
+// @access  Public
+const handleGoogleCalendarCallback = async (req, res, next) => {
+  const frontendBaseUrl = getFrontendBaseUrl(req);
+
+  try {
+    if (!googleCalendarService.hasGoogleCalendarConfig()) {
+      return res.redirect(`${frontendBaseUrl}/goals?google_calendar=not_configured`);
+    }
+
+    const { state, code, error } = req.query;
+
+    if (error) {
+      return res.redirect(`${frontendBaseUrl}/goals?google_calendar=error`);
+    }
+
+    if (!state || !code) {
+      return res.redirect(`${frontendBaseUrl}/goals?google_calendar=invalid_callback`);
+    }
+
+    const user = await User.findOne({
+      'googleCalendar.oauthState': state.toString(),
+      'googleCalendar.oauthStateExpire': { $gt: new Date() },
+    }).select('+googleCalendar.accessToken +googleCalendar.refreshToken');
+
+    if (!user) {
+      return res.redirect(`${frontendBaseUrl}/goals?google_calendar=invalid_state`);
+    }
+
+    const tokenData = await googleCalendarService.exchangeCodeForTokens(code.toString());
+    const email = await googleCalendarService.fetchGoogleUserEmail(tokenData.access_token);
+
+    user.googleCalendar = user.googleCalendar || {};
+    user.googleCalendar.connected = true;
+    user.googleCalendar.email = email || user.email;
+    user.googleCalendar.calendarId = user.googleCalendar.calendarId || 'primary';
+    user.googleCalendar.accessToken = tokenData.access_token;
+    user.googleCalendar.refreshToken =
+      tokenData.refresh_token || user.googleCalendar.refreshToken;
+    user.googleCalendar.tokenExpiryDate = googleCalendarService.tokenExpiryFromNow(
+      tokenData.expires_in
+    );
+    user.googleCalendar.syncEnabled = true;
+    user.googleCalendar.oauthState = undefined;
+    user.googleCalendar.oauthStateExpire = undefined;
+    user.googleCalendar.lastSyncError = undefined;
+
+    await user.save({ validateBeforeSave: false });
+
+    return res.redirect(`${frontendBaseUrl}/goals?google_calendar=connected`);
+  } catch (error) {
+    try {
+      if (req.query.state) {
+        const user = await User.findOne({
+          'googleCalendar.oauthState': req.query.state.toString(),
+        }).select('+googleCalendar.accessToken +googleCalendar.refreshToken');
+
+        if (user) {
+          user.googleCalendar = user.googleCalendar || {};
+          user.googleCalendar.oauthState = undefined;
+          user.googleCalendar.oauthStateExpire = undefined;
+          user.googleCalendar.lastSyncError = (error.message || 'OAuth callback failed').slice(
+            0,
+            500
+          );
+          await user.save({ validateBeforeSave: false });
+        }
+      }
+    } catch (innerError) {
+      // ignore callback cleanup failures
+    }
+
+    if (!res.headersSent) {
+      return res.redirect(`${frontendBaseUrl}/goals?google_calendar=failed`);
+    }
+
+    next(error);
+  }
+};
+
+// @desc    Disconnect Google Calendar integration
+// @route   POST /api/v1/auth/google-calendar/disconnect
+// @access  Private
+const disconnectGoogleCalendar = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select(
+      '+googleCalendar.accessToken +googleCalendar.refreshToken'
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.googleCalendar = user.googleCalendar || {};
+    user.googleCalendar.connected = false;
+    user.googleCalendar.syncEnabled = false;
+    user.googleCalendar.accessToken = undefined;
+    user.googleCalendar.refreshToken = undefined;
+    user.googleCalendar.tokenExpiryDate = undefined;
+    user.googleCalendar.oauthState = undefined;
+    user.googleCalendar.oauthStateExpire = undefined;
+    user.googleCalendar.lastSyncError = undefined;
+
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({ message: 'Google Calendar disconnected' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   login,
   logout,
   forgotPassword,
   resetPassword,
+  googleCalendarStatus,
+  connectGoogleCalendar,
+  handleGoogleCalendarCallback,
+  disconnectGoogleCalendar,
 };
-
