@@ -78,7 +78,9 @@ app.use((err, req, res, next) => {
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-const nextStandalonePath = path.join(__dirname, '../frontend/.next/standalone');
+const nextStandalonePath = path.join(__dirname, '../frontend/.next/standalone/frontend');
+// Fallback to non-nested path if project structure is different
+const nextStandaloneRoot = path.join(__dirname, '../frontend/.next/standalone');
 const NEXT_PORT = 3001;
 
 /** Poll until port is accepting connections, then resolve. */
@@ -104,9 +106,22 @@ function waitForPort(port, maxWaitMs = 60000, intervalMs = 1000) {
 }
 
 async function boot() {
-  if (fs.existsSync(nextStandalonePath)) {
+  let finalStandalonePath = null;
+  const nestedPath = path.join(nextStandaloneRoot, 'frontend');
+  
+  if (fs.existsSync(nestedPath)) {
+    finalStandalonePath = nestedPath;
+    console.log(`✅ Next.js standalone found (nested): ${finalStandalonePath}`);
+  } else if (fs.existsSync(nextStandaloneRoot)) {
+    finalStandalonePath = nextStandaloneRoot;
+    console.log(`✅ Next.js standalone found (root): ${finalStandalonePath}`);
+  }
+
+  if (finalStandalonePath) {
     // 1. Spawn the Next.js standalone server on an internal port
-    const nextServerPath = path.join(nextStandalonePath, 'server.js');
+    const nextServerPath = path.join(finalStandalonePath, 'server.js');
+    console.log(`🚀 Starting Next.js standalone from: ${nextServerPath}`);
+    
     const nextProc = spawn(process.execPath, [nextServerPath], {
       env: { ...process.env, PORT: String(NEXT_PORT), HOSTNAME: '127.0.0.1' },
       stdio: 'inherit',
@@ -139,7 +154,7 @@ async function boot() {
       req.pipe(proxy, { end: true });
     });
   } else {
-    console.warn('⚠️  Next.js standalone build not found — only API routes active.');
+    console.warn(`⚠️  Next.js standalone build not found at ${nextStandaloneRoot} — only API routes active.`);
     app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
   }
 
