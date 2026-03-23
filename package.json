@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node backend/server.js",
-    "build:render": "cd frontend && npm install && npm run build && cp -r .next/static .next/standalone/.next/static && cp -r .next/static .next/standalone/frontend/.next/static && cp -r public .next/standalone/public && cp -r public .next/standalone/frontend/public && cd .."
+    "build:render": "cd frontend && npm install && npm run build && mkdir -p .next/standalone/.next/static && mkdir -p .next/standalone/frontend/.next/static && cp -rv .next/static/. .next/standalone/.next/static/ && cp -rv .next/static/. .next/standalone/frontend/.next/static/ && cp -rv public/. .next/standalone/public/ && cp -rv public/. .next/standalone/frontend/public/ && cd .."
   },
   "keywords": [],
   "author": "",

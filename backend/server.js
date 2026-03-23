@@ -56,6 +56,18 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/ai', aiRoutes);
 
+// ── Serve Static Assets ────────────────────────────────────────────────────
+// Serve Next.js static assets directly via Express for reliability
+const frontendPublicPath = path.join(__dirname, '../frontend/public');
+const frontendStaticPath = path.join(__dirname, '../frontend/.next/static');
+
+if (fs.existsSync(frontendPublicPath)) {
+  app.use(express.static(frontendPublicPath));
+}
+if (fs.existsSync(frontendStaticPath)) {
+  app.use('/_next/static', express.static(frontendStaticPath));
+}
+
 // ── Centralized error handler ──────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
