@@ -71,7 +71,7 @@ if (fs.existsSync(nextStandalonePath)) {
   nextProc.on('exit', (code) => console.warn(`⚠️ Next.js process exited with code ${code}`));
 
   // Proxy all non-API requests to the Next.js server
-  app.all('*', (req, res) => {
+  app.use((req, res) => {
     const options = {
       hostname: '127.0.0.1',
       port: NEXT_PORT,
