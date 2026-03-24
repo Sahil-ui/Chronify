@@ -1,4 +1,4 @@
-﻿const OpenAI = require('openai');
+const OpenAI = require('openai');
 
 // Initialize all AI model clients
 const models = {
@@ -71,7 +71,7 @@ if (process.env.GROK_API_KEY) {
 
 // Helper: allow local/offline fallback for dev and tests
 const shouldUseLocalFallback = () =>
-  process.env.LOCAL_AI_FALLBACK !== 'false' && process.env.NODE_ENV !== 'production';
+  process.env.LOCAL_AI_FALLBACK === 'true' || process.env.NODE_ENV !== 'production';
 
 const clampNumber = (value, min, max, fallback) => {
   const parsed = Number(value);
@@ -1218,7 +1218,7 @@ const callAIModelWithFallback = async (systemPrompt, userPrompt) => {
     }
   }
 
-  // If 2+ models show NO_CREDITS error (402), credits are actually expired
+  // If multiple models show NO_CREDITS error (402), credits are likely expired across providers
   if (noCreditsCount >= 2) {
     const err = new Error('Oops your AI credits are expired');
     err.statusCode = 402;
