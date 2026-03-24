@@ -166,6 +166,9 @@ const parseClockToMinutes = ({ hourRaw, minuteRaw, meridiem, isEnd = false }) =>
     let convertedHour = hour % 12;
     if (mer === 'pm') {
       convertedHour += 12;
+    } else if (isEnd && hour === 12 && minute === 0) {
+      // Handle 12 AM as the end of the day (24:00) rather than the start (0:00)
+      return 1440;
     }
     return convertedHour * 60 + minute;
   }
@@ -210,7 +213,10 @@ const parsePreferredTimeWindows = (windowText) => {
     let startMer = normalizeMeridiem(startMerRaw);
     let endMer = normalizeMeridiem(endMerRaw);
 
-    if (!startMer && endMer) {
+    if (!startMer && !endMer) {
+      // Both missing (24h style or ambiguous)
+      // No special merging needed, parseClockToMinutes handles raw hours 0-24
+    } else if (!startMer && endMer) {
       startMer = endMer;
     } else if (startMer && !endMer) {
       endMer = startMer;
@@ -239,7 +245,18 @@ const parsePreferredTimeWindows = (windowText) => {
     }
 
     if (endTotalMinutes <= startTotalMinutes) {
-      continue;
+      // Heuristic: If someone says "9-5" without AM/PM, they likely mean "9 AM - 5 PM"
+      if (!startMerRaw && !endMerRaw && startTotalMinutes < 720 && endTotalMinutes < 720) {
+        const potentialEnd = endTotalMinutes + 720;
+        if (potentialEnd > startTotalMinutes) {
+          endTotalMinutes = potentialEnd;
+        }
+      }
+
+      // Final check: if still backward, discard
+      if (endTotalMinutes <= startTotalMinutes) {
+        continue;
+      }
     }
 
     ranges.push({
@@ -787,7 +804,7 @@ const generateGoal = async (req, res, next) => {
     const preferredTimeWindows = parsePreferredTimeWindows(planning.preferredStudyWindow);
     if (planning.preferredStudyWindow && preferredTimeWindows.length === 0) {
       throw badRequest(
-        'preferredStudyWindow format is invalid. Example: "6-8 AM" or "6-8 AM and 9-10 PM".'
+        'preferredStudyWindow format is invalid. Examples: "6-8 AM", "12:00-14:00", "9 AM - 12 PM", or "6-8 AM and 9-10 PM".'
       );
     }
     const aiPlan = await aiService.generateGoalWithTasks(prompt, planning);
