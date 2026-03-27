@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { API_BASE_URL, storeToken, storeUser } from "@/lib/auth";
+import { API_BASE_URL, isAuthenticated, storeToken, storeUser } from "@/lib/auth";
 
 type LoginResponse = {
   token: string;
@@ -13,6 +13,13 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
