@@ -898,6 +898,31 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+
+          {/* Help & Feedback Section */}
+          <section className="mt-12 animate-cf-fade-up sm:mt-16">
+            <div className="rounded-3xl border border-slate-800/60 bg-slate-900/40 p-8 text-center transition-all hover:bg-slate-900/60">
+              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-xl">
+                ✉️
+              </div>
+              <h3 className="text-sm font-semibold text-slate-100">Help & Feedback</h3>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-400">
+                Have questions or ideas to improve Chronify? We'd love to hear from you. 
+                Our team is available to help with any issues or feedback.
+              </p>
+              <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <a 
+                  href="mailto:chronify140@gmail.com" 
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-xs font-semibold text-slate-200 shadow-sm transition hover:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  chronify140@gmail.com
+                </a>
+              </div>
+            </div>
+          </section>
         </section>
       </main>
 

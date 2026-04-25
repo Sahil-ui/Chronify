@@ -106,6 +106,14 @@ export default function Navbar({ active }: NavbarProps) {
 
         {/* Right: user + logout */}
         <div className="flex items-center gap-3">
+          <a
+            href="mailto:chronify140@gmail.com"
+            className="hidden text-[11px] font-medium text-slate-500 transition hover:text-emerald-400 lg:block"
+            title="Contact support for help or feedback"
+          >
+            Support
+          </a>
+          
           {userName && (
             <span className="hidden text-xs text-slate-400 sm:block">
               {userName}

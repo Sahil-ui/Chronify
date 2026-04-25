@@ -292,6 +292,65 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-slate-800 bg-slate-950 py-12">
+        <div className="mx-auto max-w-6xl px-6 md:px-10 lg:px-16">
+          <div className="grid gap-10 md:grid-cols-4">
+            <div className="md:col-span-1">
+              <Link href="/" className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="text-sm font-semibold tracking-tight">Chronify</span>
+              </Link>
+              <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                The AI productivity mentor designed to help you reclaim your focus and ship what matters.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Product</h4>
+              <ul className="mt-4 space-y-2 text-xs text-slate-500">
+                <li><Link href="/signup" className="hover:text-emerald-400 transition">Features</Link></li>
+                <li><Link href="/login" className="hover:text-emerald-400 transition">Dashboard</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Support</h4>
+              <ul className="mt-4 space-y-2 text-xs text-slate-500">
+                <li>
+                  <a href="mailto:chronify140@gmail.com" className="hover:text-emerald-400 transition">
+                    Contact: chronify140@gmail.com
+                  </a>
+                </li>
+                <li>
+                  <span className="block italic text-[11px] text-slate-600 mt-1">
+                  Available for issues, improvements, or feedback.
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Legal</h4>
+              <ul className="mt-4 space-y-2 text-xs text-slate-500">
+                <li className="hover:text-slate-400 cursor-default">Privacy Policy</li>
+                <li className="hover:text-slate-400 cursor-default">Terms of Service</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-900 pt-8 sm:flex-row">
+            <p className="text-[11px] text-slate-600">
+              © {new Date().getFullYear()} Chronify AI. All rights reserved.
+            </p>
+            <div className="flex gap-6">
+              <a href="mailto:chronify140@gmail.com" className="text-[11px] text-slate-500 hover:text-emerald-400 transition">
+                chronify140@gmail.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
