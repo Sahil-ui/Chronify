@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const googleCalendarService = require('../services/googleCalendarService');
+const googleAuthService = require('../services/googleAuthService');
 
 const createToken = (userId, tokenVersion = 0) => {
   const secret = process.env.JWT_SECRET;
@@ -402,6 +403,62 @@ const disconnectGoogleCalendar = async (req, res, next) => {
   }
 };
 
+// @desc    Initiate Google Login
+// @route   GET /api/v1/auth/google
+// @access  Public
+const initiateGoogleLogin = (req, res) => {
+  const state = googleAuthService.generateState();
+  const authUrl = googleAuthService.buildAuthUrl(state);
+  console.log('Initiating Google Login with URL:', authUrl);
+  res.redirect(authUrl);
+};
+
+// @desc    Handle Google Login Callback
+// @route   GET /api/v1/auth/google/callback
+// @access  Public
+const handleGoogleLoginCallback = async (req, res, next) => {
+  const frontendBaseUrl = getFrontendBaseUrl(req);
+  const { code, error } = req.query;
+
+  if (error || !code) {
+    return res.redirect(`${frontendBaseUrl}/login?error=google_auth_failed`);
+  }
+
+  try {
+    const googleUser = await googleAuthService.getUserInfoFromCode(code);
+    const { email, name, sub: googleId, picture } = googleUser;
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Update existing user with Google ID if not present
+      if (!user.googleId) {
+        user.googleId = googleId;
+        if (picture) user.profilePicture = picture;
+        await user.save({ validateBeforeSave: false });
+      }
+    } else {
+      // Create new user (Signup)
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        profilePicture: picture,
+        password: crypto.randomBytes(16).toString('hex'), // Random password for OAuth users
+      });
+    }
+
+    const token = createToken(user._id, user.tokenVersion || 0);
+
+    // Redirect to frontend with token
+    // We'll use a special callback page on the frontend to handle this
+    res.redirect(`${frontendBaseUrl}/auth/callback?token=${token}&id=${user._id}&name=${encodeURIComponent(user.name)}&email=${user.email}`);
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    res.redirect(`${frontendBaseUrl}/login?error=google_auth_error`);
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -412,4 +469,6 @@ module.exports = {
   connectGoogleCalendar,
   handleGoogleCalendarCallback,
   disconnectGoogleCalendar,
+  initiateGoogleLogin,
+  handleGoogleLoginCallback,
 };

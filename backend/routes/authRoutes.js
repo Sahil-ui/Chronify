@@ -10,6 +10,8 @@ const {
   connectGoogleCalendar,
   handleGoogleCalendarCallback,
   disconnectGoogleCalendar,
+  initiateGoogleLogin,
+  handleGoogleLoginCallback,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const {
@@ -31,5 +33,9 @@ router.post('/logout', protect, logout);
 router.get('/google-calendar/status', protect, googleCalendarStatus);
 router.post('/google-calendar/connect', protect, connectGoogleCalendar);
 router.post('/google-calendar/disconnect', protect, disconnectGoogleCalendar);
+
+// Google Sign-in/Signup routes
+router.get('/google', initiateGoogleLogin);
+router.get('/google/callback', handleGoogleLoginCallback);
 
 module.exports = router;

@@ -28,6 +28,14 @@ const userSchema = new Schema({
     maxlength: [128, 'Password must be at most 128 characters'],
     select: false, // do not return password by default
   },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // allow null for non-google users
+  },
+  profilePicture: {
+    type: String,
+  },
   productivityScore: {
     type: Number,
     default: 0,
