@@ -63,10 +63,17 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       <main className="mx-auto flex max-w-md flex-col gap-6 px-6 pb-16 pt-14">
-        <header className="space-y-2 text-center animate-cf-fade-up">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Chronify
-          </p>
+        <header className="space-y-4 text-center animate-cf-fade-up">
+          <Link href="/" className="inline-flex flex-col items-center gap-2 group">
+            <img 
+              src="/logo.png" 
+              alt="Chronify Logo" 
+              className="h-10 w-10 object-contain transition-transform group-hover:scale-105" 
+            />
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-200 transition-colors">
+              Chronify
+            </p>
+          </Link>
           <h1 className="text-2xl font-semibold tracking-tight">
             Create your account
           </h1>

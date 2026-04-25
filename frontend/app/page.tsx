@@ -18,9 +18,13 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       <main className="mx-auto flex max-w-6xl flex-col gap-24 px-6 pb-24 pt-16 md:gap-32 md:px-10 lg:px-16 lg:pt-20">
         <header className="flex items-center justify-between animate-cf-fade-in">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="text-sm font-semibold tracking-tight">Chronify</span>
+          <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <img 
+              src="/logo.png" 
+              alt="Chronify Logo" 
+              className="h-6 w-6 object-contain brightness-110" 
+            />
+            <span className="text-sm font-bold tracking-tight">Chronify</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Link
@@ -297,9 +301,13 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 md:px-10 lg:px-16">
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-1">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-sm font-semibold tracking-tight">Chronify</span>
+              <Link href="/" className="inline-flex items-center gap-2.5">
+                <img 
+                  src="/logo.png" 
+                  alt="Chronify Logo" 
+                  className="h-6 w-6 object-contain" 
+                />
+                <span className="text-sm font-bold tracking-tight">Chronify</span>
               </Link>
               <p className="mt-4 text-xs leading-relaxed text-slate-500">
                 The AI productivity mentor designed to help you reclaim your focus and ship what matters.

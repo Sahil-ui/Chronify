@@ -46,9 +46,15 @@ export default function Navbar({ active }: NavbarProps) {
     <nav className="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:px-10 lg:px-16">
         {/* Brand */}
-        <Link href="/dashboard" className="inline-flex items-center gap-2 group">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 transition group-hover:shadow-[0_0_8px_2px] group-hover:shadow-emerald-400/60" />
-          <span className="text-sm font-semibold tracking-tight text-slate-100">
+        <Link href="/dashboard" className="inline-flex items-center gap-2.5 group">
+          <div className="relative h-7 w-7 transition-transform group-hover:scale-105">
+            <img 
+              src="/logo.png" 
+              alt="Chronify Logo" 
+              className="h-full w-full object-contain brightness-110"
+            />
+          </div>
+          <span className="text-sm font-bold tracking-tight text-slate-100">
             Chronify
           </span>
         </Link>
