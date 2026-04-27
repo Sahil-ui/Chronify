@@ -354,14 +354,28 @@ const buildTaskDocsWithInstructions = async ({
   const taskDocs = [];
 
   for (const task of scheduledTasks) {
-    // AI-generated goal flows can create many tasks; local-only instruction generation
-    // keeps this responsive while still producing structured guidance.
-    // eslint-disable-next-line no-await-in-loop
+    // If we already have LLM-generated steps directly from the goal prompt, use them!
+    const hasExistingSteps = Array.isArray(task.steps) && task.steps.length > 0;
+    
+    // Otherwise fallback to generating instructions per task (which usually falls back to local heuristic due to speed limits)
     const instructionPack = await taskInstructionService.generateTaskInstructionPack({
       title: task.title,
       description: task.description,
-      localOnly,
+      existingSteps: hasExistingSteps ? task.steps.map(s => ({text: s, completed: false})) : [],
+      localOnly: hasExistingSteps ? true : localOnly,
     });
+
+    // If we had existing steps/tips/expectedOutcome, inject them into the pack
+    if (hasExistingSteps) {
+      instructionPack.aiInstructions.summary = task.description;
+      for (let i = 0; i < task.steps.length; i++) {
+         if(instructionPack.aiInstructions.steps[i]) {
+            instructionPack.aiInstructions.steps[i].text = task.steps[i];
+         }
+      }
+      instructionPack.aiInstructions.tips = task.tips || [];
+      instructionPack.aiInstructions.expectedOutcome = task.expectedOutcome || '';
+    }
 
     taskDocs.push({
       userId,
@@ -389,6 +403,9 @@ const normalizeTaskDurations = (tasks = []) =>
       title: task?.title || 'Untitled task',
       description: task?.description || 'Work on this step.',
       durationHours: Number(clamp(normalizedHours, MIN_TASK_HOURS, MAX_TASK_HOURS).toFixed(1)),
+      steps: Array.isArray(task?.steps) ? task.steps : [],
+      tips: Array.isArray(task?.tips) ? task.tips : [],
+      expectedOutcome: task?.expectedOutcome || '',
     };
   });
 
@@ -580,6 +597,9 @@ const buildDailySchedule = (tasks, dailyAvailableHours, options = {}) => {
         description: task.description,
         startTime,
         endTime,
+        steps: task.steps,
+        tips: task.tips,
+        expectedOutcome: task.expectedOutcome,
       });
 
       remainingMinutes -= chunkMinutes;

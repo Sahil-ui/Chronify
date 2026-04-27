@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -19,12 +20,17 @@ export default function Home() {
       <main className="mx-auto flex max-w-6xl flex-col gap-24 px-6 pb-24 pt-16 md:gap-32 md:px-10 lg:px-16 lg:pt-20">
         <header className="flex items-center justify-between animate-cf-fade-in">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <img 
-              src="/logo.png" 
-              alt="Chronify Logo" 
-              className="h-6 w-6 object-contain brightness-110" 
-            />
-            <span className="text-sm font-bold tracking-tight">Chronify</span>
+            <div className="relative h-7 w-7 transition group-hover:scale-110">
+              <div className="absolute -inset-1 rounded-full bg-emerald-500/20 blur animate-pulse" />
+              <Image 
+                src="/logo.png" 
+                alt="Chronify Logo" 
+                width={28}
+                height={28}
+                className="relative brightness-125 forced-color-adjust-none"
+              />
+            </div>
+            <span className="text-base font-bold tracking-tighter text-slate-100">CHRONIFY</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Link
@@ -49,18 +55,17 @@ export default function Home() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Chronify · AI productivity mentor
             </div>
-            <div className="space-y-4 animate-cf-fade-up cf-anim-delay-100">
-              <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-                Turn your calendar into a{" "}
-                <span className="animate-cf-gradient bg-gradient-to-r from-emerald-400 via-sky-400 to-violet-400 bg-clip-text text-transparent">
-                  focus engine
+            <div className="space-y-6 animate-cf-fade-up cf-anim-delay-100">
+              <h1 className="text-balance text-5xl font-extrabold tracking-tighter sm:text-6xl lg:text-8xl leading-[0.9]">
+                Stop losing your week to{" "}
+                <span className="block italic text-emerald-400">
+                  shallow work.
                 </span>
-                .
               </h1>
-              <p className="max-w-xl text-pretty text-base text-slate-300 sm:text-lg">
-                Chronify understands your habits, meetings, and energy levels to design
-                a schedule that protects deep work, tames meetings, and keeps your week
-                ruthlessly prioritized.
+              <p className="max-w-xl text-pretty text-lg font-medium text-slate-400 sm:text-xl">
+                Chronify acts as a ruthless AI chief-of-staff for your calendar. 
+                It reshuffles meetings, protects deep work, and ensures you ship 
+                what actually matters every single day.
               </p>
             </div>
             <div className="flex flex-col gap-4 animate-cf-fade-up cf-anim-delay-200 sm:flex-row sm:items-center">
@@ -116,53 +121,58 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features */}
-        <section className="space-y-8">
+        {/* Feature Bento Grid */}
+        <section className="space-y-12">
           <div className="space-y-3">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Designed for high‑performing teams
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
+              Defend your output at all costs.
             </h2>
-            <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
-              Chronify plugs into your calendar and communication tools to give every
-              teammate a personal chief of staff that guards their time.
+            <p className="max-w-2xl text-base text-slate-400">
+              Most teams waste 40% of their week on context-switching. Chronify 
+              eliminates the fluff so your best people can actually do their jobs.
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-sm">
-              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+          <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
+            <div className="cf-card-hover md:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/40 p-8">
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
                 ⚡
               </div>
-              <h3 className="text-sm font-semibold text-slate-50">
-                AI‑driven schedule optimization
-              </h3>
-              <p className="mt-2 text-sm text-slate-300">
-                Automatically reshuffle meetings and deep work blocks based on priority,
-                energy levels, and collaboration windows.
+              <h3 className="text-xl font-bold text-slate-50">Ruthless Auto-Rescheduling</h3>
+              <p className="mt-3 text-slate-400 max-w-lg">
+                Chronify detects low-value meetings and suggests moving them to your "shallow work" 
+                windows. It builds 3-hour deep work blocks where you are most creative.
               </p>
             </div>
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-sm">
-              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300">
+            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-900/40 p-8">
+               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/20">
                 🔒
               </div>
-              <h3 className="text-sm font-semibold text-slate-50">
-                Focus protection guardrails
-              </h3>
-              <p className="mt-2 text-sm text-slate-300">
-                Auto-decline low‑value invites, suggest async updates, and defend
-                protected focus slots across time zones.
+              <h3 className="text-xl font-bold text-slate-50">Deep Work Guardrails</h3>
+              <p className="mt-3 text-slate-400">
+                Automatically declines meeting invites that fragment your focus slots.
               </p>
             </div>
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-sm">
-              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
-                📈
+            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-900/40 p-8">
+               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400 ring-1 ring-violet-500/20">
+                📊
               </div>
-              <h3 className="text-sm font-semibold text-slate-50">
-                Real‑time productivity insights
-              </h3>
-              <p className="mt-2 text-sm text-slate-300">
-                Track deep work hours, meeting load, and focus score trends without
-                invasive monitoring or manual time tracking.
+              <h3 className="text-xl font-bold text-slate-50">Zero-BS Analytics</h3>
+              <p className="mt-3 text-slate-400">
+                Know exactly where your team&apos;s time is being killed. No manual tracking.
               </p>
+            </div>
+            <div className="cf-card-hover md:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/40 p-8 overflow-hidden relative">
+              <div className="relative z-10">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
+                  🧠
+                </div>
+                <h3 className="text-xl font-bold text-slate-50">AI Productivity Mentorship</h3>
+                <p className="mt-3 text-slate-400 max-w-md">
+                  Every Sunday, Chronify analyzes your week and gives you brutal feedback on 
+                  where you failed and how to reclaim your time next week.
+                </p>
+              </div>
+              <div className="absolute right-[-10%] bottom-[-20%] opacity-20 blur-2xl w-64 h-64 bg-emerald-500 rounded-full" />
             </div>
           </div>
         </section>
@@ -302,15 +312,16 @@ export default function Home() {
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-1">
               <Link href="/" className="inline-flex items-center gap-2.5">
-                <img 
+                <Image 
                   src="/logo.png" 
                   alt="Chronify Logo" 
-                  className="h-6 w-6 object-contain" 
+                  width={24}
+                  height={24}
                 />
-                <span className="text-sm font-bold tracking-tight">Chronify</span>
+                <span className="text-sm font-bold tracking-tight">CHRONIFY</span>
               </Link>
               <p className="mt-4 text-xs leading-relaxed text-slate-500">
-                The AI productivity mentor designed to help you reclaim your focus and ship what matters.
+                The AI mentor built to defend your deep work. From founders, for founders.
               </p>
             </div>
             
@@ -323,26 +334,18 @@ export default function Home() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Support</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Trust</h4>
               <ul className="mt-4 space-y-2 text-xs text-slate-500">
-                <li>
-                  <a href="mailto:chronify140@gmail.com" className="hover:text-emerald-400 transition">
-                    Contact: chronify140@gmail.com
-                  </a>
-                </li>
-                <li>
-                  <span className="block italic text-[11px] text-slate-600 mt-1">
-                  Available for issues, improvements, or feedback.
-                  </span>
-                </li>
+                <li><Link href="/" className="hover:text-emerald-400 transition">Security Review</Link></li>
+                <li><Link href="/" className="hover:text-emerald-400 transition">Data Ethics</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Legal</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-300">Company</h4>
               <ul className="mt-4 space-y-2 text-xs text-slate-500">
-                <li className="hover:text-slate-400 cursor-default">Privacy Policy</li>
-                <li className="hover:text-slate-400 cursor-default">Terms of Service</li>
+                <li><a href="mailto:hello@chronify.ai" className="hover:text-emerald-400 transition">hello@chronify.ai</a></li>
+                <li className="text-[10px] text-slate-700 italic">San Francisco, CA</li>
               </ul>
             </div>
           </div>

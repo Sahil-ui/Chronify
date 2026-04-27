@@ -875,6 +875,9 @@ const normalizeGoalPlan = (data, prompt, options = {}) => {
         title,
         description,
         durationHours: Number(durationHours.toFixed(1)),
+        steps: Array.isArray(task?.steps) ? task.steps : [],
+        tips: Array.isArray(task?.tips) ? task.tips : [],
+        expectedOutcome: task?.expectedOutcome || '',
       };
     })
     .filter(Boolean);
@@ -1324,7 +1327,10 @@ Return ONLY valid JSON matching this exact structure:
     {
       "title": "Specific task title",
       "description": "What exactly to do in this task",
-      "durationHours": Number (estimated hours, e.g. 1.5)
+      "durationHours": Number (estimated hours, e.g. 1.5),
+      "steps": ["Step 1", "Step 2", "Step 3"],
+      "tips": ["Tip 1"],
+      "expectedOutcome": "What done looks like"
     }
   ]
 }

@@ -312,39 +312,45 @@ function GoalCard({
   const overdue = urgency === "Overdue";
 
   return (
-    <div className="cf-card-hover flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/80 p-5">
+    <div className="cf-card-hover flex flex-col gap-4 rounded-3xl border border-white/5 bg-slate-900/40 p-6 shadow-xl relative overflow-hidden group">
+      {/* Subtle hover gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none" />
+      
       {/* Top row */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="min-w-0 space-y-1">
-          <p className="truncate font-medium text-slate-100">{goal.title}</p>
+          <p className="truncate text-lg font-bold tracking-tight text-slate-50">{goal.title}</p>
           {goal.description && (
-            <p className="line-clamp-2 text-xs text-slate-500">
+            <p className="line-clamp-2 text-xs font-medium text-slate-400">
               {goal.description}
             </p>
           )}
         </div>
         <span
-          className={`shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-medium ${status.color}`}
+          className={`shrink-0 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${status.color}`}
         >
           {status.label}
         </span>
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap items-center gap-3 text-xs">
-        <span className={`font-medium ${overdue ? "text-red-400" : "text-slate-400"}`}>
-          📅 {formatDate(goal.deadline)} · {urgency}
+      <div className="flex flex-wrap items-center gap-4 text-xs relative z-10">
+        <span className={`font-semibold tracking-wide ${overdue ? "text-red-400" : "text-emerald-400"}`}>
+          📅 {formatDate(goal.deadline)} <span className="text-slate-500 mx-1">•</span> {urgency}
         </span>
-        <span className="text-slate-500">⏱ {goal.dailyAvailableHours}h/day</span>
+        <span className="font-semibold text-slate-400 flex items-center gap-1">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          {goal.dailyAvailableHours}h/day
+        </span>
       </div>
 
       {/* Tags */}
       {goal.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2 relative z-10">
           {goal.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] font-medium text-slate-300"
+              className="inline-flex rounded-md bg-white/5 border border-white/10 px-2 py-1 text-[10px] font-semibold tracking-wide text-slate-300"
             >
               {tag}
             </span>
@@ -353,23 +359,17 @@ function GoalCard({
       )}
 
       {/* Actions */}
-      <div className="flex gap-2 border-t border-slate-800 pt-3">
+      <div className="flex gap-2 border-t border-white/10 pt-4 mt-2 relative z-10">
         <button
           onClick={() => onEdit(goal)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-800"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-white/10 bg-slate-950/50 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800"
         >
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
           Edit
         </button>
         <button
           onClick={() => onDelete(goal)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-950/60"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-950/60 hover:text-red-300"
         >
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
           Delete
         </button>
       </div>
@@ -381,34 +381,29 @@ function GoalCard({
 
 function EmptyGoals({ onAdd, onAddAi }: { onAdd: () => void; onAddAi: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-800 bg-slate-950/60 px-8 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-3xl">
+    <div className="flex flex-col items-center gap-6 rounded-3xl border border-dashed border-white/10 bg-slate-900/20 px-8 py-20 text-center relative overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/5 blur-3xl rounded-full" />
+      <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20 text-3xl">
         🎯
       </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-slate-200">No goals yet</p>
-        <p className="max-w-xs text-xs text-slate-500">
-          Set a goal and Chronify will help you plan tasks to achieve it.
+      <div className="relative z-10 space-y-2">
+        <p className="text-xl font-bold tracking-tight text-slate-50">Zero active goals</p>
+        <p className="max-w-sm text-sm font-medium text-slate-400">
+          Chronify needs a target. Set your first goal and let the AI generate a ruthless execution plan.
         </p>
       </div>
-      <div className="flex items-center gap-3 mt-2">
+      <div className="relative z-10 flex items-center gap-4 mt-2">
         <button
           onClick={onAddAi}
-          className="cf-shimmer inline-flex items-center gap-1.5 rounded-full bg-violet-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-violet-500/30 transition hover:brightness-110"
+          className="cf-shimmer inline-flex items-center gap-2 rounded-full bg-violet-600 px-6 py-3 text-sm font-bold tracking-wide text-white shadow-lg shadow-violet-500/20 transition hover:brightness-110"
         >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Generate with AI
+          ✨ Generate with AI
         </button>
         <button
           onClick={onAdd}
-          className="cf-shimmer inline-flex items-center gap-1.5 rounded-full bg-emerald-400 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-emerald-500/30 transition hover:brightness-110"
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/60 px-6 py-3 text-sm font-bold tracking-wide text-slate-300 transition hover:bg-slate-800"
         >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New goal
+          Add manually
         </button>
       </div>
     </div>
@@ -735,19 +730,21 @@ function GoalsPageInner() {
         {/* Stats */}
         {totalCount > 0 && (
           <section className="grid gap-4 sm:grid-cols-3 animate-cf-fade-up cf-anim-delay-100">
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5">
-              <p className="text-xs text-slate-400">Total goals</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-100">{totalCount}</p>
+            <div className="cf-card-hover rounded-3xl border border-white/5 bg-slate-900/40 p-6 flex flex-col justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Total Goals</p>
+              <p className="mt-4 text-4xl font-extrabold tracking-tight text-slate-100">{totalCount}</p>
             </div>
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5">
-              <p className="text-xs text-slate-400">Active</p>
-              <p className="mt-2 text-3xl font-semibold text-emerald-400">{activeCount}</p>
+            <div className="cf-card-hover rounded-3xl border border-white/5 bg-slate-900/40 p-6 flex flex-col justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Active</p>
+              <p className="mt-4 text-4xl font-extrabold tracking-tight text-emerald-400">{activeCount}</p>
             </div>
-            <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5">
-              <p className="text-xs text-slate-400">Completed</p>
-              <p className="mt-2 text-3xl font-semibold text-sky-400">
-                {goals.filter((g) => g.status === "completed").length}
-              </p>
+            <div className="cf-card-hover rounded-3xl border border-white/5 bg-slate-900/40 p-6 flex flex-col justify-between relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-xs font-semibold uppercase tracking-widest text-sky-500">Completed</p>
+                <p className="mt-4 text-4xl font-extrabold tracking-tight text-sky-400">
+                  {goals.filter((g) => g.status === "completed").length}
+                </p>
+              </div>
             </div>
           </section>
         )}

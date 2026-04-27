@@ -79,6 +79,18 @@ const toDateTimeLocal = (iso: string) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+const toDateString = (iso: string) => {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const toTimeString = (iso: string) => {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const getTaskRange = (windowDays: number) => {
   const now = new Date();
   const fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -162,11 +174,17 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [startDate, setStartDate] = useState(
+    initial ? toDateString(initial.startTime) : today
+  );
   const [startTime, setStartTime] = useState(
-    initial ? toDateTimeLocal(initial.startTime) : `${today}T09:00`
+    initial ? toTimeString(initial.startTime) : "09:00"
+  );
+  const [endDate, setEndDate] = useState(
+    initial ? toDateString(initial.endTime) : today
   );
   const [endTime, setEndTime] = useState(
-    initial ? toDateTimeLocal(initial.endTime) : `${today}T10:00`
+    initial ? toTimeString(initial.endTime) : "10:00"
   );
   const [goalId, setGoalId] = useState(
     initial?.goalId ?? (activeGoals[0]?._id || "")
@@ -181,7 +199,15 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current) onClose();
+    // We only close if the user explicitly clicked the background overlay.
+    // For this specific modal (task creation), we disable background-click closure 
+    // to prevent accidental data loss when interacting with browser-native pickers.
+    if (e.target === overlayRef.current) {
+      // If we really want to keep it, we could add a confirmation, 
+      // but for now, the user requested that "clicking outside should ONLY close the picker".
+      // So we'll skip closing the modal here.
+      // onClose();
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -189,7 +215,10 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
     setLoading(true);
     setError(null);
 
-    if (new Date(endTime) <= new Date(startTime)) {
+    const sDateTime = new Date(`${startDate}T${startTime}`);
+    const eDateTime = new Date(`${endDate}T${endTime}`);
+
+    if (eDateTime <= sDateTime) {
       setError("End time must be after start time.");
       setLoading(false);
       return;
@@ -205,8 +234,8 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
       const body: Record<string, unknown> = {
         title,
         description: description || undefined,
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
+        startTime: new Date(`${startDate}T${startTime}`).toISOString(),
+        endTime: new Date(`${endDate}T${endTime}`).toISOString(),
         goalId,
       };
       if (reminderOffset !== "") body.reminderOffsetMinutes = Number(reminderOffset);
@@ -287,11 +316,21 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block space-y-1.5">
+              <span className="text-xs text-slate-400">Start date <span className="text-red-400">*</span></span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+                className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-400 [color-scheme:dark]"
+              />
+            </label>
             <label className="block space-y-1.5">
               <span className="text-xs text-slate-400">Start time <span className="text-red-400">*</span></span>
               <input
-                type="datetime-local"
+                type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 required
@@ -299,9 +338,19 @@ function TaskModal({ initial, goals, onClose, onSaved }: TaskModalProps) {
               />
             </label>
             <label className="block space-y-1.5">
+              <span className="text-xs text-slate-400">End date <span className="text-red-400">*</span></span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+                className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-400 [color-scheme:dark]"
+              />
+            </label>
+            <label className="block space-y-1.5">
               <span className="text-xs text-slate-400">End time <span className="text-red-400">*</span></span>
               <input
-                type="datetime-local"
+                type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 required
@@ -611,30 +660,54 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Stats */}
-        <section className="grid gap-4 sm:grid-cols-3">
-          <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5 animate-cf-fade-up cf-anim-delay-100">
-            <p className="text-xs text-slate-400">Completion rate</p>
-            <p className="mt-2 text-3xl font-semibold text-emerald-400">{completionRate}%</p>
-            <p className="mt-1 text-xs text-slate-500">{tasksCompleted}/{tasksScheduled} tasks done</p>
+        {/* Bento Stats */}
+        <section className="grid gap-4 md:grid-cols-4 md:grid-rows-2">
+          {/* Main Focus Bento */}
+          <div className="cf-card-hover md:col-span-2 md:row-span-2 relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/40 p-8 flex flex-col justify-between animate-cf-fade-up shadow-xl">
+            <div className="relative z-10">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20 text-2xl shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                🎯
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tighter text-slate-50">Completion rate</h2>
+              <div className="mt-4 flex items-end gap-3">
+                <p className="text-6xl font-black tracking-tighter text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.2)]">
+                  {completionRate}%
+                </p>
+              </div>
+              <p className="mt-4 max-w-sm text-sm text-slate-400 font-medium leading-relaxed">
+                You have completed <span className="text-emerald-400">{tasksCompleted}</span> out of <span className="text-slate-300">{tasksScheduled}</span> tasks scheduled today. Keep pushing stringently.
+              </p>
+            </div>
+            {/* Background glowing orb */}
+            <div className="absolute right-[-15%] top-[-15%] opacity-20 blur-3xl w-64 h-64 bg-emerald-500 rounded-full pointer-events-none" />
           </div>
-          <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5 animate-cf-fade-up cf-anim-delay-200">
-            <p className="text-xs text-slate-400">Weekly streak</p>
-            <p className="mt-2 text-3xl font-semibold text-sky-400">{weeklyStreak} days</p>
-            <p className="mt-1 text-xs text-slate-500">Consecutive days with progress</p>
+
+          <div className="cf-card-hover md:col-span-2 rounded-3xl border border-white/5 bg-slate-900/40 p-6 flex items-center justify-between animate-cf-fade-up cf-anim-delay-100">
+            <div>
+              <p className="text-sm font-medium tracking-wide text-slate-400 uppercase">Weekly Streak</p>
+              <p className="mt-1 text-4xl font-extrabold text-sky-400">{weeklyStreak} <span className="text-xl text-slate-500">days</span></p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/20 text-xl">
+              🔥
+            </div>
           </div>
-          <div className="cf-card-hover rounded-3xl border border-slate-800 bg-slate-950/80 p-5 animate-cf-fade-up cf-anim-delay-300">
-            <p className="text-xs text-slate-400">Active goals</p>
-            <p className="mt-2 text-3xl font-semibold text-violet-400">
-              {goals.filter((g) => g.status === "active").length}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
+
+          <div className="cf-card-hover md:col-span-2 rounded-3xl border border-white/5 bg-slate-900/40 p-6 flex flex-col justify-between animate-cf-fade-up cf-anim-delay-200">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium tracking-wide text-slate-400 uppercase">Active Goals</p>
+              <p className="text-3xl font-extrabold text-violet-400">{goals.filter((g) => g.status === "active").length}</p>
+            </div>
+            <div className="mt-4">
               {goals.length === 0 ? (
-                <a href="/goals" className="text-violet-400 hover:underline">Create your first goal →</a>
+                <a href="/goals" className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-400 hover:text-violet-300 transition group">
+                  Deploy First Goal <span className="transform transition group-hover:translate-x-1">→</span>
+                </a>
               ) : (
-                <a href="/goals" className="text-slate-400 hover:text-slate-200 hover:underline">Manage goals →</a>
+                <a href="/goals" className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition group">
+                  Manage Goals <span className="transform transition group-hover:translate-x-1">→</span>
+                </a>
               )}
-            </p>
+            </div>
           </div>
         </section>
 
@@ -701,12 +774,12 @@ export default function DashboardPage() {
               {tasks.map((task) => (
                 <div
                   key={task._id}
-                  className={`flex flex-col gap-3 rounded-3xl border bg-slate-950/80 p-4 text-sm transition ${
+                  className={`flex flex-col gap-3 rounded-3xl border bg-slate-900/40 p-5 text-sm transition backdrop-blur-sm ${
                     task.status === "completed"
-                      ? "border-emerald-800/50"
+                      ? "border-emerald-500/30 opacity-70"
                       : task.status === "missed"
-                      ? "border-red-900/50"
-                      : "border-slate-800"
+                      ? "border-amber-500/30"
+                      : "border-white/5 shadow-lg shadow-black/20"
                   }`}
                 >
                   <div className="space-y-1 min-w-0">
@@ -725,11 +798,11 @@ export default function DashboardPage() {
                           ? formatTimeRange(task.startTime, task.endTime)
                           : `${formatTaskDate(task.startTime)} • ${formatTimeRange(task.startTime, task.endTime)}`}
                       </span>
-                      <span className={`text-[10px] font-medium uppercase tracking-wide ${statusColors[task.status]}`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${statusColors[task.status]}`}>
                         {task.status}
                       </span>
                     </div>
-                    <p className={`font-medium ${task.status === "completed" ? "text-slate-400 line-through" : "text-slate-100"}`}>
+                    <p className={`text-lg font-bold tracking-tight ${task.status === "completed" ? "text-slate-500 line-through" : "text-slate-50"}`}>
                       {task.title}
                     </p>
                     {task.aiInstructions?.summary && (
@@ -739,8 +812,9 @@ export default function DashboardPage() {
                       <p className="truncate text-xs text-slate-500">{task.description}</p>
                     )}
                     {task.aiInstructions?.steps?.length ? (
-                      <div className="mt-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
-                        <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="mt-3 rounded-2xl border border-white/5 bg-slate-950/60 p-4 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20" />
+                        <div className="mb-3 flex items-center justify-between text-[11px] font-semibold tracking-wide uppercase text-slate-400">
                           <span>Checklist progress</span>
                           <span>
                             {typeof task.instructionProgress === "number"
