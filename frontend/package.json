@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node -e \"const fs=require('fs'); if (fs.existsSync('.next/standalone')) { fs.mkdirSync('.next/standalone/public', {recursive: true}); fs.mkdirSync('.next/standalone/.next/static', {recursive: true}); fs.cpSync('public', '.next/standalone/public', {recursive: true}); fs.cpSync('.next/static', '.next/standalone/.next/static', {recursive: true}); try { fs.mkdirSync('.next/standalone/frontend/public', {recursive: true}); fs.mkdirSync('.next/standalone/frontend/.next/static', {recursive: true}); fs.cpSync('public', '.next/standalone/frontend/public', {recursive: true}); fs.cpSync('.next/static', '.next/standalone/frontend/.next/static', {recursive: true}); } catch(e){} }\"",StartLine:7,TargetContent:
     "start": "next start",
     "lint": "eslint"
   },
